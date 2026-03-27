@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Spot Check | Login</title>
+
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family: Arial; }
+    body { height:100vh; background:#0f172a; }
+    .page { height:100%; display:flex; justify-content:center; align-items:center; }
+    .login-card {
+      background:#fff; width:100%; max-width:380px; padding:32px;
+      border-radius:14px; box-shadow:0 20px 40px rgba(0,0,0,0.3);
+    }
+    .header { text-align:center; margin-bottom:30px; }
+    .title { font-size:28px; margin-bottom:10px; font-weight:bold; }
+    .subtitle { color:#64748b; font-size:14px; }
+    .field { margin-bottom:18px; }
+    .field label { display:block; margin-bottom:6px; font-weight:bold; }
+    .field input {
+      width:100%; padding:12px; border-radius:8px;
+      border:1px solid #cbd5e1; font-size:14px;
+    }
+    button {
+      width:100%; padding:14px;
+      background:linear-gradient(90deg,#4f46e5,#312e81);
+      border:none; border-radius:8px; color:#fff;
+      font-size:16px; cursor:pointer; margin-top:5px;
+    }
+    .footer { margin-top:20px; text-align:center; }
+    .footer a { color:#4f46e5; cursor:pointer; }
+  </style>
+</head>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <script>
+      alert("{{ messages[0] }}");
+    </script>
+  {% endif %}
+{% endwith %}
+<body>
+<div class="page">
+  <div class="login-card">
+
+    <div class="header">
+      <h1 class="title" id="title">Welcome</h1>
+      <p class="subtitle" id="subtitle">Please sign in to your account</p>
+      {% if error %}
+        <p style="color:red; text-align:center; margin-bottom:10px;">
+          {{ error }}
+        </p>
+      {% endif %}
+    </div>
+
+    <!-- LOGIN -->
+    <form method="POST" action="{{ url_for('login') }}" id="loginForm">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" name="username" required />
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required />
+      </div>
+
+      <button type="submit">Login</button>
+    </form>
+
+    <!-- REGISTER -->
+    <form method="POST" action="{{ url_for('register') }}" id="signupForm" style="display:none;">
+      <div class="field">
+        <label>Create Username</label>
+        <input type="text" name="username" required />
+      </div>
+
+      <div class="field">
+        <label>Create Password</label>
+        <input type="password" name="password" required />
+      </div>
+
+      <div class="field">
+        <label>Confirm Password</label>
+        <input type="password" name="confirm_password" required />
+      </div>
+
+      <button type="submit">Create Account</button>
+    </form>
+
+    <div class="footer">
+      <a onclick="showSignup()" id="createAccount">Create Account</a>
+      <a onclick="showLogin()" id="backToLogin" style="display:none;">Back to Login</a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function showSignup() {
+  document.getElementById("loginForm").style.display = "none";
+  document.getElementById("signupForm").style.display = "block";
+  document.getElementById("title").innerText = "Create Account";
+  document.getElementById("subtitle").innerText = "Create a new account";
+  document.getElementById("createAccount").style.display = "none";
+  document.getElementById("backToLogin").style.display = "block";
+}
+
+function showLogin() {
+  document.getElementById("signupForm").style.display = "none";
+  document.getElementById("loginForm").style.display = "block";
+  document.getElementById("title").innerText = "Welcome";
+  document.getElementById("subtitle").innerText = "Please sign in to your account";
+  document.getElementById("createAccount").style.display = "block";
+  document.getElementById("backToLogin").style.display = "none";
+}
+</script>
+
+</body>
+</html>

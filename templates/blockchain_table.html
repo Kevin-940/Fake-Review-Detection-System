@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Blockchain Genuine Reviews</title>
+<style>
+body {
+  background: #020617;
+  color: white;
+  font-family: Arial;
+  padding: 40px;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255,255,255,0.05);
+}
+
+th, td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+th {
+  background: #111827;
+}
+
+tr:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.back {
+  display: block;
+  margin-top: 20px;
+  text-align: center;
+  color: #3b82f6;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Blockchain Stored Genuine Reviews</h2>
+
+<table>
+<tr>
+<th>Index</th>
+<th>User</th>
+<th>Review</th>
+<th>Confidence</th>
+<th>Source</th>
+<th>Previous Hash</th>
+</tr>
+
+{% for block in chain %}
+{% if block.data %}
+<tr>
+<td>{{ block.index }}</td>
+<td>{{ block.data.user }}</td>
+<td>{{ block.data.review }}</td>
+<td>{{ block.data.confidence }}%</td>
+<td>{{ block.data.source }}</td>
+<td>{{ block.previous_hash }}</td>
+</tr>
+{% endif %}
+{% endfor %}
+
+</table>
+
+<a href="/dashboard" class="back">← Back to Dashboard</a>
+
+</body>
+</html>

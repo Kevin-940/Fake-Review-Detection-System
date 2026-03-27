@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screenshot Results</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+.results-container {
+  max-width: 900px;
+  margin: auto;
+  margin-top: 40px;
+  background: rgba(255,255,255,0.08);
+  padding: 30px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.results-title {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.results-table th, .results-table td {
+  padding: 12px;
+  text-align: left;
+}
+
+.results-table th {
+  background: rgba(255,255,255,0.1);
+}
+
+.results-table tr {
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.fake-row {
+  background: rgba(239,68,68,0.2);
+}
+
+.genuine-row {
+  background: rgba(34,197,94,0.2);
+}
+
+.back-btn {
+  display: block;
+  width: 200px;
+  margin: 30px auto;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(90deg,#3b82f6,#9333ea);
+  color: white;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">
+    <img src="{{ url_for('static', filename='logo.png') }}">
+  </div>
+
+  <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+</header>
+
+<div class="container">
+
+  <div class="results-container">
+    <h2 class="results-title"> Review Results</h2>
+
+    <table class="results-table">
+      <tr>
+        <th>Review</th>
+        <th>Result</th>
+        <th>Confidence</th>
+      </tr>
+
+      {% for review, prediction, confidence in results %}
+      <tr class="{% if prediction == 1 %}fake-row{% else %}genuine-row{% endif %}">
+        <td>{{ review }}</td>
+        <td>
+          {% if prediction == 1 %}
+            <span style="color:#ef4444; font-weight:bold;">Fake</span>
+          {% else %}
+            <span style="color:#22c55e; font-weight:bold;">Genuine</span>
+          {% endif %}
+        </td>
+        <td>{{ (confidence) | round(2) }}%</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <a href="{{ url_for('dashboard') }}" class="back-btn">
+      ← Back to Dashboard
+    </a>
+
+  </div>
+
+</div>
+
+</body>
+</html>

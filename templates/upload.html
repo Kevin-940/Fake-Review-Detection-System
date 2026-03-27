@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Upload CSV</title>
+</head>
+<body>
+
+<h2>Upload CSV File</h2>
+
+<form action="/api/upload" method="POST" enctype="multipart/form-data">
+  <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
+  <button type="submit">Upload and Analyze</button>
+</form>
+
+<a href="/dashboard">Back to Dashboard</a>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+Flask
+Flask-Login
+Flask-SQLAlchemy
+gunicorn
+pandas
+numpy
+scikit-learn
+tensorflow
+keras
+nltk
+opencv-python-headless
+pytesseract
+Pillow
