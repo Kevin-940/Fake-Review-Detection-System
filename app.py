@@ -29,11 +29,13 @@ from datetime import datetime
 import csv
 
 app = Flask(__name__)
-app.secret_key = "secret123"
-app.config['SECRET_KEY'] = 'your-secret-key-change-this'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app.config['SECRET_KEY'] = 'secret123'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'users.db')
+app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Create upload folder
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -91,8 +93,8 @@ MAX_LEN = 200
 stop_words = set(stopwords.words('english'))
 stemmer = PorterStemmer()
 
-model = load_model('models/fake_review_model.h5')
-with open('models/tokenizer.pkl', 'rb') as handle:
+model = load_model(os.path.join(BASE_DIR, 'models', 'fake_review_model.h5'))
+with open(os.path.join(BASE_DIR, 'models', 'tokenizer.pkl'), 'rb') as handle:
     tokenizer = pickle.load(handle)
 
 @login_manager.user_loader
