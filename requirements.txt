@@ -12,4 +12,3 @@ nltk
 pytesseract
 Pillow
 matplotlib
-opencv-python

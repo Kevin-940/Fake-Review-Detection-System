@@ -17,7 +17,6 @@ import numpy as np
 import pandas as pd
 import re
 import pytesseract
-import cv2
 from PIL import Image
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -273,8 +272,6 @@ def upload_image():
         file = request.files['image']
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(filepath)
-
-        img = cv2.imread(filepath)
 
         try:
             text = pytesseract.image_to_string(img)
