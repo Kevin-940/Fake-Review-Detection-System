@@ -19,7 +19,10 @@ import pytesseract
 import cv2
 from PIL import Image
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+if os.name == "nt":  # Windows
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+else:  # Render (Linux)
+    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 from nltk.corpus import stopwords
 from nltk.tokenize import wordpunct_tokenize
 from nltk.stem import PorterStemmer
@@ -31,7 +34,9 @@ import csv
 app = Flask(__name__)
 app.secret_key = "secret123"
 app.config['SECRET_KEY'] = 'your-secret-key-change-this'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+db_path = os.path.join(BASE_DIR, 'users.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
@@ -91,10 +96,30 @@ MAX_LEN = 200
 stop_words = set(stopwords.words('english'))
 stemmer = PorterStemmer()
 
-model = load_model('models/fake_review_model.h5')
-with open('models/tokenizer.pkl', 'rb') as handle:
-    tokenizer = pickle.load(handle)
+model = None
+tokenizer = None
 
+def load_ml_model():
+    global model, tokenizer
+    if model is None or tokenizer is None:
+        try:
+            print("Loading ML model...")
+            model_path = os.path.join(BASE_DIR, 'models', 'fake_review_model.h5')
+            tokenizer_path = os.path.join(BASE_DIR, 'models', 'tokenizer.pkl')
+
+            from tensorflow.keras.models import load_model
+            import pickle
+
+            model = load_model(model_path, compile=False)
+            with open(tokenizer_path, 'rb') as handle:
+                tokenizer = pickle.load(handle)
+
+            print("Model loaded successfully")
+
+        except Exception as e:
+            print("Model loading failed:", e)
+            model = None
+            tokenizer = None
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -110,16 +135,24 @@ def predict_review(text):
 
     # Rule-based detection
     if len(text.split()) < 3:
-        return 1, 0.9   # Fake (too short)
+        return 1, 0.9
     
     if re.search(r'(http|www|buy now|click here|free|offer)', text.lower()):
-        return 1, 0.95  # Fake (spam words)
+        return 1, 0.95
+
+    load_ml_model()
+
+    if model is None or tokenizer is None:
+        return 0, 0.5
 
     clean = preprocess_text(text)
     seq = tokenizer.texts_to_sequences([clean])
     pad = pad_sequences(seq, maxlen=MAX_LEN)
 
-    prob_fake = float(model.predict(pad)[0][0])
+    try:
+        prob_fake = float(model.predict(pad)[0][0])
+    except:
+        return 0, 0.5
 
     if prob_fake > 0.5:
         return 1, prob_fake
@@ -131,7 +164,9 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
-
+@app.route("/health")
+def health():
+    return "OK"
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -450,4 +485,5 @@ def test_model():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
