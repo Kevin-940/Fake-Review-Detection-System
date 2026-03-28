@@ -1,4 +1,5 @@
-
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 from blockchain import Blockchain
 blockchain = Blockchain()
@@ -52,7 +53,7 @@ app = Flask(__name__)
 
 
 app.config['SECRET_KEY'] = 'secret123'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'users.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
@@ -505,6 +506,11 @@ def test_model():
 @app.route("/test")
 def test():
     return "Server is running"
+@app.errorhandler(500)
+def internal_error(error):
+    import traceback
+    return "<pre>" + traceback.format_exc() + "</pre>", 500
+
 # Defaultly adding user name and password
 
 port = int(os.environ.get("PORT", 10000))
