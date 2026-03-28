@@ -1,4 +1,4 @@
-from matplotlib.pyplot import gray
+
 
 from blockchain import Blockchain
 blockchain = Blockchain()
@@ -11,6 +11,7 @@ import hashlib
 import json
 import time
 import os
+import nltk
 import pickle
 import numpy as np
 import pandas as pd
@@ -18,8 +19,27 @@ import re
 import pytesseract
 import cv2
 from PIL import Image
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# Download NLTK data safely
+try:
+    nltk.data.find('tokenizers/punkt')
+except:
+    nltk.download('punkt')
+
+try:
+    nltk.data.find('corpora/stopwords')
+except:
+    nltk.download('stopwords')
+
+# Ensure uploads folder exists
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+if os.name == "nt":  # Windows
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+else:  # Render / Linux
+    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 from nltk.corpus import stopwords
 from nltk.tokenize import wordpunct_tokenize
 from nltk.stem import PorterStemmer
@@ -30,7 +50,7 @@ import csv
 
 app = Flask(__name__)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 app.config['SECRET_KEY'] = 'secret123'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'users.db')
@@ -93,10 +113,15 @@ MAX_LEN = 200
 stop_words = set(stopwords.words('english'))
 stemmer = PorterStemmer()
 
-model = load_model(os.path.join(BASE_DIR, 'models', 'fake_review_model.h5'))
-with open(os.path.join(BASE_DIR, 'models', 'tokenizer.pkl'), 'rb') as handle:
-    tokenizer = pickle.load(handle)
-
+try:
+    model = load_model(os.path.join(BASE_DIR, 'models', 'fake_review_model.h5'))
+    with open(os.path.join(BASE_DIR, 'models', 'tokenizer.pkl'), 'rb') as handle:
+        tokenizer = pickle.load(handle)
+    print("Model loaded successfully")
+except Exception as e:
+    print("Error loading model:", e)
+    model = None
+    tokenizer = None
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -121,7 +146,11 @@ def predict_review(text):
     seq = tokenizer.texts_to_sequences([clean])
     pad = pad_sequences(seq, maxlen=MAX_LEN)
 
-    prob_fake = float(model.predict(pad)[0][0])
+    try:
+        prob_fake = float(model.predict(pad)[0][0])
+    except Exception as e:
+        print("Prediction Error:", e)
+        return 1, 0.5
 
     if prob_fake > 0.5:
         return 1, prob_fake
@@ -242,8 +271,12 @@ def upload_image():
         file.save(filepath)
 
         img = cv2.imread(filepath)
-        text = pytesseract.image_to_string(img)
 
+        try:
+            text = pytesseract.image_to_string(img)
+        except Exception as e:
+            print("OCR Error:", e)
+            text = ""
         reviews = text.split('\n')
 
         results = []
@@ -444,10 +477,17 @@ def test_model():
         seq = tokenizer.texts_to_sequences([clean])
         pad = pad_sequences(seq, maxlen=MAX_LEN)
 
-        prob = float(model.predict(pad)[0][0])
+        try:
+            prob = float(model.predict(pad)[0][0])
+        except Exception as e:
+            print("Test Model Error:", e)
+            prob = 0.0
         results.append((review, prob))
 
     return str(results)
+@app.route("/test")
+def test():
+    return "Server is running"
 # Defaultly adding user name and password
 
 if __name__ == "__main__":
