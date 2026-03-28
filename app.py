@@ -107,20 +107,31 @@ class Blockchain:
 # Create blockchain object
 blockchain = Blockchain()
 # Load model and tokenizer
-MAX_WORDS = 5000
-MAX_LEN = 200
-stop_words = set(stopwords.words('english'))
-stemmer = PorterStemmer()
+# Load model and tokenizer safely
+model = None
+tokenizer = None
 
-try:
-    model = load_model(os.path.join(BASE_DIR, 'models', 'fake_review_model.h5'))
-    with open(os.path.join(BASE_DIR, 'models', 'tokenizer.pkl'), 'rb') as handle:
-        tokenizer = pickle.load(handle)
-    print("Model loaded successfully")
-except Exception as e:
-    print("Error loading model:", e)
-    model = None
-    tokenizer = None
+def load_ml_model():
+    global model, tokenizer
+    if model is None or tokenizer is None:
+        try:
+            print("Loading ML model...")
+            model_path = os.path.join(BASE_DIR, 'models', 'fake_review_model.h5')
+            tokenizer_path = os.path.join(BASE_DIR, 'models', 'tokenizer.pkl')
+
+            from tensorflow.keras.models import load_model
+            import pickle
+
+            model = load_model(model_path, compile=False)
+            with open(tokenizer_path, 'rb') as handle:
+                tokenizer = pickle.load(handle)
+
+            print("Model loaded successfully")
+
+        except Exception as e:
+            print("Model loading failed:", e)
+            model = None
+            tokenizer = None
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -133,7 +144,10 @@ def preprocess_text(text):
     return " ".join(cleaned)
 
 def predict_review(text):
+    load_ml_model()
 
+    if model is None or tokenizer is None:
+        return 0, 0.5
     # Rule-based detection
     if len(text.split()) < 3:
         return 1, 0.9
