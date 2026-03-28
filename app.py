@@ -1,5 +1,4 @@
-import logging
-logging.basicConfig(level=logging.DEBUG)
+from matplotlib.pyplot import gray
 
 from blockchain import Blockchain
 blockchain = Blockchain()
@@ -12,34 +11,15 @@ import hashlib
 import json
 import time
 import os
-import nltk
 import pickle
 import numpy as np
 import pandas as pd
 import re
 import pytesseract
+import cv2
 from PIL import Image
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Download NLTK data safely
-try:
-    nltk.data.find('tokenizers/punkt')
-except:
-    nltk.download('punkt')
-
-try:
-    nltk.data.find('corpora/stopwords')
-except:
-    nltk.download('stopwords')
-
-# Ensure uploads folder exists
-UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-if os.name == "nt":  # Windows
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-else:  # Render / Linux
-    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 from nltk.corpus import stopwords
 from nltk.tokenize import wordpunct_tokenize
 from nltk.stem import PorterStemmer
@@ -49,13 +29,11 @@ from datetime import datetime
 import csv
 
 app = Flask(__name__)
-
-
-
-app.config['SECRET_KEY'] = 'secret123'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
-app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.secret_key = "secret123"
+app.config['SECRET_KEY'] = 'your-secret-key-change-this'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Create upload folder
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -108,31 +86,15 @@ class Blockchain:
 # Create blockchain object
 blockchain = Blockchain()
 # Load model and tokenizer
-# Load model and tokenizer safely
-model = None
-tokenizer = None
+MAX_WORDS = 5000
+MAX_LEN = 200
+stop_words = set(stopwords.words('english'))
+stemmer = PorterStemmer()
 
-def load_ml_model():
-    global model, tokenizer
-    if model is None or tokenizer is None:
-        try:
-            print("Loading ML model...")
-            model_path = os.path.join(BASE_DIR, 'models', 'fake_review_model.h5')
-            tokenizer_path = os.path.join(BASE_DIR, 'models', 'tokenizer.pkl')
+model = load_model('models/fake_review_model.h5')
+with open('models/tokenizer.pkl', 'rb') as handle:
+    tokenizer = pickle.load(handle)
 
-            from tensorflow.keras.models import load_model
-            import pickle
-
-            model = load_model(model_path, compile=False)
-            with open(tokenizer_path, 'rb') as handle:
-                tokenizer = pickle.load(handle)
-
-            print("Model loaded successfully")
-
-        except Exception as e:
-            print("Model loading failed:", e)
-            model = None
-            tokenizer = None
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -145,30 +107,19 @@ def preprocess_text(text):
     return " ".join(cleaned)
 
 def predict_review(text):
-    load_ml_model()
 
-    if model is None or tokenizer is None:
-        return 0, 0.5
     # Rule-based detection
     if len(text.split()) < 3:
-        return 1, 0.9
-
+        return 1, 0.9   # Fake (too short)
+    
     if re.search(r'(http|www|buy now|click here|free|offer)', text.lower()):
-        return 1, 0.95
-
-    # If model not loaded, use rule-based only
-    if model is None or tokenizer is None:
-        return 0, 0.5
+        return 1, 0.95  # Fake (spam words)
 
     clean = preprocess_text(text)
     seq = tokenizer.texts_to_sequences([clean])
     pad = pad_sequences(seq, maxlen=MAX_LEN)
 
-    try:
-        prob_fake = float(model.predict(pad)[0][0])
-    except Exception as e:
-        print("Prediction Error:", e)
-        return 0, 0.5
+    prob_fake = float(model.predict(pad)[0][0])
 
     if prob_fake > 0.5:
         return 1, prob_fake
@@ -180,9 +131,7 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
-@app.route("/health")
-def health():
-    return "OK"
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -290,11 +239,9 @@ def upload_image():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(filepath)
 
-        try:
-            text = pytesseract.image_to_string(img)
-        except Exception as e:
-            print("OCR Error:", e)
-            text = ""
+        img = cv2.imread(filepath)
+        text = pytesseract.image_to_string(img)
+
         reviews = text.split('\n')
 
         results = []
@@ -495,27 +442,12 @@ def test_model():
         seq = tokenizer.texts_to_sequences([clean])
         pad = pad_sequences(seq, maxlen=MAX_LEN)
 
-        try:
-            prob = float(model.predict(pad)[0][0])
-        except Exception as e:
-            print("Test Model Error:", e)
-            prob = 0.0
+        prob = float(model.predict(pad)[0][0])
         results.append((review, prob))
 
     return str(results)
-@app.route("/test")
-def test():
-    return "Server is running"
-@app.errorhandler(500)
-def internal_error(error):
-    import traceback
-    return "<pre>" + traceback.format_exc() + "</pre>", 500
-
 # Defaultly adding user name and password
-
-port = int(os.environ.get("PORT", 10000))
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
