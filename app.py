@@ -165,7 +165,9 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
-
+@app.route("/health")
+def health():
+    return "OK"
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -491,8 +493,9 @@ def test():
     return "Server is running"
 # Defaultly adding user name and password
 
+port = int(os.environ.get("PORT", 10000))
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
