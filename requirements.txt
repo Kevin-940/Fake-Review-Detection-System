@@ -5,9 +5,10 @@ pandas
 numpy
 scikit-learn
 gunicorn
-joblib
 matplotlib
 tensorflow
 keras
 h5py
 nltk
+pytesseract
+Pillow

@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: fake-review-detector
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    runtime: python-3.10.0
+    aptPackages:
+      - tesseract-ocr
+      - libtesseract-dev
