@@ -137,10 +137,14 @@ def predict_review(text):
 
     # Rule-based detection
     if len(text.split()) < 3:
-        return 1, 0.9   # Fake (too short)
-    
+        return 1, 0.9
+
     if re.search(r'(http|www|buy now|click here|free|offer)', text.lower()):
-        return 1, 0.95  # Fake (spam words)
+        return 1, 0.95
+
+    # If model not loaded, use rule-based only
+    if model is None or tokenizer is None:
+        return 0, 0.5
 
     clean = preprocess_text(text)
     seq = tokenizer.texts_to_sequences([clean])
@@ -150,7 +154,7 @@ def predict_review(text):
         prob_fake = float(model.predict(pad)[0][0])
     except Exception as e:
         print("Prediction Error:", e)
-        return 1, 0.5
+        return 0, 0.5
 
     if prob_fake > 0.5:
         return 1, prob_fake
