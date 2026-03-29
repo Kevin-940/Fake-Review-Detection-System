@@ -160,32 +160,38 @@ def preprocess_text(text):
     return " ".join(cleaned)
 
 def predict_review(text):
+    import re
+    from tensorflow.keras.preprocessing.sequence import pad_sequences
 
     # Rule-based detection
     if len(text.split()) < 3:
-        return 1, 0.9
-    
+        return 1, 0.90  # Fake
+
     if re.search(r'(http|www|buy now|click here|free|offer)', text.lower()):
-        return 1, 0.95
+        return 1, 0.95  # Fake
 
+    # Load ML model only when needed
     load_ml_model()
-
+    print("Model:", model)
+    print("Tokenizer:", tokenizer)
     if model is None or tokenizer is None:
-        return 0, 0.5
+        return 0, 0.50  # Model not loaded
 
     clean = preprocess_text(text)
     seq = tokenizer.texts_to_sequences([clean])
     pad = pad_sequences(seq, maxlen=MAX_LEN)
 
     try:
-        prob_fake = float(model.predict(pad)[0][0])
-    except:
-        return 0, 0.5
+        prob_fake = float(model.predict(pad, verbose=0)[0][0])
+    except Exception as e:
+        print("Prediction error:", e)
+        return 0, 0.50
 
-    if prob_fake > 0.5:
-        return 1, prob_fake
+    # Decide label
+    if prob_fake >= 0.5:
+        return 1, round(prob_fake, 2)
     else:
-        return 0, 1 - prob_fake
+        return 0, round(1 - prob_fake, 2)
     # Routes
 @app.route('/')
 def index():
@@ -246,18 +252,24 @@ def register():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    analyses = Analysis.query.filter_by(user_id=current_user.id).all()
-    
-    # Calculate statistics
-    total_analyses = len(analyses)
-    total_fake = sum(1 for a in analyses if a.result == 1)
-    total_genuine = sum(1 for a in analyses if a.result == 0)
-    
-    return render_template('dashboard.html', 
-                         analyses=analyses,
-                         total_analyses=total_analyses,
-                         total_fake=total_fake,
-                         total_genuine=total_genuine)
+    try:
+        analyses = Analysis.query.filter_by(user_id=current_user.id).all()
+
+        # Calculate statistics
+        total_analyses = len(analyses)
+        total_fake = sum(1 for a in analyses if a.result == 1)
+        total_genuine = sum(1 for a in analyses if a.result == 0)
+
+        return render_template(
+            'dashboard.html',
+            analyses=analyses,
+            total_analyses=total_analyses,
+            total_fake=total_fake,
+            total_genuine=total_genuine
+        )
+
+    except Exception as e:
+        return f"Dashboard Error: {str(e)}"
 @app.route('/upload')
 @login_required
 def upload():
@@ -479,7 +491,12 @@ def users_table():
     
     table += "</table>"
     return table
-
+@app.route("/view_db")
+@login_required
+def view_db():
+    users = User.query.all()
+    analyses = Analysis.query.all()
+    return render_template("view_db.html", users=users, analyses=analyses)
 @app.route('/logout')
 @login_required
 def logout():

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Records</title>
+</head>
+<body>
+    <h2>Registered Users</h2>
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Username</th>
+        </tr>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Review Analysis Records</h2>
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Review</th>
+            <th>Result</th>
+            <th>Confidence</th>
+        </tr>
+        {% for a in analyses %}
+        <tr>
+            <td>{{ a.id }}</td>
+            <td>{{ a.user_id }}</td>
+            <td>{{ a.review_text }}</td>
+            <td>
+                {% if a.result == 1 %}
+                    Fake
+                {% else %}
+                    Genuine
+                {% endif %}
+            </td>
+            <td>{{ a.confidence }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
