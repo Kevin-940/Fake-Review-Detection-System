@@ -23,8 +23,6 @@ import easyocr
 from nltk.corpus import stopwords
 from nltk.tokenize import wordpunct_tokenize
 from nltk.stem import PorterStemmer
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing.sequence import pad_sequences
 from datetime import datetime
 import csv
 
@@ -120,7 +118,7 @@ def load_ml_model():
             tokenizer_path = os.path.join(BASE_DIR, 'models', 'tokenizer.pkl')
 
             from tensorflow.keras.models import load_model
-            import pickle
+            
 
             model = load_model(model_path, compile=False)
             with open(tokenizer_path, 'rb') as handle:
@@ -153,6 +151,7 @@ def predict_review(text):
         return 1, 0.95
 
     load_ml_model()
+    from tensorflow.keras.preprocessing.sequence import pad_sequences
 
     if model is None or tokenizer is None:
         return 0, 0.5
@@ -171,6 +170,9 @@ def predict_review(text):
     else:
         return 0, 1 - prob_fake
     # Routes
+@app.route("/ping")
+def ping():
+    return "pong"
 @app.route('/')
 def index():
     if current_user.is_authenticated:
