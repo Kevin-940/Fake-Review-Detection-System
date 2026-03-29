@@ -10,7 +10,4 @@ keras==2.12.0
 h5py==3.8.0
 nltk
 Pillow
-opencv-python
-easyocr
-torch
-torchvision
+opencv-python-headless
