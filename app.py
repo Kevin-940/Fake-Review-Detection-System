@@ -36,7 +36,8 @@ app.secret_key = "secret123"
 app.config['SECRET_KEY'] = 'your-secret-key-change-this'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 db_path = os.path.join(BASE_DIR, 'users.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'users.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
@@ -114,25 +115,37 @@ stemmer = PorterStemmer()
 model = None
 tokenizer = None
 
+model = None
+tokenizer = None
+
 def load_ml_model():
     global model, tokenizer
+
     if model is None or tokenizer is None:
         try:
             print("Loading ML model...")
+
+            import os
+            import pickle
+            from tensorflow.keras.models import load_model
+
+            BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
             model_path = os.path.join(BASE_DIR, 'models', 'fake_review_model.h5')
             tokenizer_path = os.path.join(BASE_DIR, 'models', 'tokenizer.pkl')
 
-            from tensorflow.keras.models import load_model
-            import pickle
+            print("Model path:", model_path)
+            print("Tokenizer path:", tokenizer_path)
 
             model = load_model(model_path, compile=False)
+
             with open(tokenizer_path, 'rb') as handle:
                 tokenizer = pickle.load(handle)
 
             print("Model loaded successfully")
 
         except Exception as e:
-            print("Model loading failed:", e)
+            print("Error loading model:", e)
             model = None
             tokenizer = None
 @login_manager.user_loader
