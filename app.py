@@ -1,4 +1,3 @@
-from matplotlib.pyplot import gray
 
 from blockchain import Blockchain
 blockchain = Blockchain()
