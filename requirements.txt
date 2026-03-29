@@ -14,4 +14,3 @@ opencv-python
 easyocr
 torch
 torchvision
-matplotlib
