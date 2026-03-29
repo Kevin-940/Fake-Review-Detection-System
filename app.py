@@ -10,6 +10,7 @@ from werkzeug.utils import secure_filename
 import hashlib
 import json
 import time
+import nltk
 import os
 import pickle
 import numpy as np
