@@ -1,4 +1,4 @@
-
+from matplotlib.pyplot import gray
 
 from blockchain import Blockchain
 blockchain = Blockchain()
@@ -16,13 +16,19 @@ import pickle
 import numpy as np
 import pandas as pd
 import re
+import pytesseract
 import cv2
 from PIL import Image
-import easyocr
 
+if os.name == "nt":  # Windows
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+else:  # Render (Linux)
+    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 from nltk.corpus import stopwords
 from nltk.tokenize import wordpunct_tokenize
 from nltk.stem import PorterStemmer
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 from datetime import datetime
 import csv
 
@@ -33,7 +39,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 db_path = os.path.join(BASE_DIR, 'users.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Create upload folder
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -118,7 +124,7 @@ def load_ml_model():
             tokenizer_path = os.path.join(BASE_DIR, 'models', 'tokenizer.pkl')
 
             from tensorflow.keras.models import load_model
-            
+            import pickle
 
             model = load_model(model_path, compile=False)
             with open(tokenizer_path, 'rb') as handle:
@@ -151,7 +157,6 @@ def predict_review(text):
         return 1, 0.95
 
     load_ml_model()
-    from tensorflow.keras.preprocessing.sequence import pad_sequences
 
     if model is None or tokenizer is None:
         return 0, 0.5
@@ -170,9 +175,6 @@ def predict_review(text):
     else:
         return 0, 1 - prob_fake
     # Routes
-@app.route("/ping")
-def ping():
-    return "pong"
 @app.route('/')
 def index():
     if current_user.is_authenticated:
@@ -284,54 +286,32 @@ def upload_csv():
 @login_required
 def upload_image():
     if request.method == 'POST':
-        try:
-            file = request.files['image']
+        file = request.files['image']
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
 
-            if not file:
-                return "No file uploaded"
+        img = cv2.imread(filepath)
+        text = pytesseract.image_to_string(img)
 
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
+        reviews = text.split('\n')
 
-            print("Saved file at:", filepath)
+        results = []
+        for review in reviews:
+            if review.strip() != "":
+                prediction, confidence = predict_review(review)
 
-            # Use PIL instead of cv2 (more reliable on Render)
-            from PIL import Image
-            import pytesseract
+                # Add to blockchain if Genuine
+                if prediction == 0:
+                    blockchain.add_review({
+                        "review": review,
+                        "confidence": round(confidence * 100, 2),
+                        "user": current_user.username,
+                        "source": "Screenshot"
+                    })
 
-            try:
-                img = Image.open(filepath)
-                reader = easyocr.Reader(['en'])
+                results.append((review, prediction, confidence))
 
-                result = reader.readtext(filepath, detail=0)
-                text = " ".join(result)
-            except Exception as e:
-                print("OCR Error:", e)
-                return "OCR failed: " + str(e)
-
-            reviews = text.split('\n')
-
-            results = []
-            for review in reviews:
-                if review.strip() != "":
-                    prediction, confidence = predict_review(review)
-
-                    if prediction == 0:
-                        blockchain.add_review({
-                            "review": review,
-                            "confidence": round(confidence * 100, 2),
-                            "user": current_user.username,
-                            "source": "Screenshot"
-                        })
-
-                    results.append((review, prediction, confidence))
-
-            return render_template('image_results.html', results=results)
-
-        except Exception as e:
-            import traceback
-            return "<pre>" + traceback.format_exc() + "</pre>"
+        return render_template('image_results.html', results=results)
 
     return render_template('upload_image.html')
 @app.route('/analysis')
