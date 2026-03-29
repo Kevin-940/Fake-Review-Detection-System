@@ -286,32 +286,51 @@ def upload_csv():
 @login_required
 def upload_image():
     if request.method == 'POST':
-        file = request.files['image']
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-        file.save(filepath)
+        try:
+            file = request.files['image']
 
-        img = cv2.imread(filepath)
-        text = pytesseract.image_to_string(img)
+            if not file:
+                return "No file uploaded"
 
-        reviews = text.split('\n')
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
 
-        results = []
-        for review in reviews:
-            if review.strip() != "":
-                prediction, confidence = predict_review(review)
+            print("Saved file at:", filepath)
 
-                # Add to blockchain if Genuine
-                if prediction == 0:
-                    blockchain.add_review({
-                        "review": review,
-                        "confidence": round(confidence * 100, 2),
-                        "user": current_user.username,
-                        "source": "Screenshot"
-                    })
+            # Use PIL instead of cv2 (more reliable on Render)
+            from PIL import Image
+            import pytesseract
 
-                results.append((review, prediction, confidence))
+            try:
+                img = Image.open(filepath)
+                text = pytesseract.image_to_string(img)
+            except Exception as e:
+                print("OCR Error:", e)
+                return "OCR failed: " + str(e)
 
-        return render_template('image_results.html', results=results)
+            reviews = text.split('\n')
+
+            results = []
+            for review in reviews:
+                if review.strip() != "":
+                    prediction, confidence = predict_review(review)
+
+                    if prediction == 0:
+                        blockchain.add_review({
+                            "review": review,
+                            "confidence": round(confidence * 100, 2),
+                            "user": current_user.username,
+                            "source": "Screenshot"
+                        })
+
+                    results.append((review, prediction, confidence))
+
+            return render_template('image_results.html', results=results)
+
+        except Exception as e:
+            import traceback
+            return "<pre>" + traceback.format_exc() + "</pre>"
 
     return render_template('upload_image.html')
 @app.route('/analysis')
