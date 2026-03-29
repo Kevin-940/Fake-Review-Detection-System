@@ -16,14 +16,10 @@ import pickle
 import numpy as np
 import pandas as pd
 import re
-import pytesseract
 import cv2
 from PIL import Image
+import easyocr
 
-if os.name == "nt":  # Windows
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-else:  # Render (Linux)
-    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 from nltk.corpus import stopwords
 from nltk.tokenize import wordpunct_tokenize
 from nltk.stem import PorterStemmer
@@ -304,7 +300,10 @@ def upload_image():
 
             try:
                 img = Image.open(filepath)
-                text = pytesseract.image_to_string(img)
+                reader = easyocr.Reader(['en'])
+
+                result = reader.readtext(filepath, detail=0)
+                text = " ".join(result)
             except Exception as e:
                 print("OCR Error:", e)
                 return "OCR failed: " + str(e)
